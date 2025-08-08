@@ -141,7 +141,7 @@ class OnePassword {
   // Loads credential suggestions for given domain name.
   async loadSuggestions (command, domain) {
     try {
-      const process = new ProcessSpawner(command, ['item', 'list', '--categories', 'login', '--session=' + this.sessionKey, '--format=json'], { OP_DEVICE: this.deviceID })
+      const process = new ProcessSpawner(command, ['item', 'list', '--categories', 'login', '--format=json'])
       const data = await process.executeSyncInAsyncContext()
 
       const matches = JSON.parse(data)
