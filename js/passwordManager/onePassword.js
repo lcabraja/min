@@ -110,7 +110,7 @@ class OnePassword {
   // Returns current 1Password-CLI status. If we have a session key, then
   // password store is considered unlocked.
   isUnlocked () {
-    return this.sessionKey !== null && (Date.now() - this.sessionKeyCreated) < this.sessionKeyLifetime
+    return true
   }
 
   // Tries to get a list of credential suggestions for a given domain name.
@@ -160,14 +160,16 @@ class OnePassword {
 
       var expandedCredentials = []
 
-      for (var i = 0; i < credentials.length; i++) {
-        const item = credentials[i]
-        const process = new ProcessSpawner(command, ['item', 'get', item.id, '--session=' + this.sessionKey, '--format=json'], { OP_DEVICE: this.deviceID })
-        const output = await process.executeSyncInAsyncContext()
-        const credential = JSON.parse(output)
+      const idsJson = JSON.stringify(credentials.map(c => ({id: c.id})))
+      const expandedProcess = new ProcessSpawner(command, ['item', 'get', '-', '--fields=label=username,label=password', '--format=json'])
+      const expandedOutput = '[' + (await expandedProcess.executeSyncInAsyncContext(idsJson)).replaceAll(/\]\n\[/g, '],[') + ']'
+      const expandedCredentialsBeforeFormat = JSON.parse(expandedOutput)
 
-        var usernameFields = credential.fields.filter(f => f.label === 'username')
-        var passwordFields = credential.fields.filter(f => f.label === 'password')
+      for (var i = 0; i < expandedCredentialsBeforeFormat.length; i++) {
+        const item = expandedCredentialsBeforeFormat[i]
+        
+        var usernameFields = (item || []).filter(f => f.purpose === 'USERNAME')
+        var passwordFields = (item || []).filter(f => f.purpose === 'PASSWORD')
 
         if (usernameFields.length > 0 && passwordFields.length > 0) {
           expandedCredentials.push({
